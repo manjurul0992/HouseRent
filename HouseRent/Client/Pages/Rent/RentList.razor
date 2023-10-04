@@ -1,0 +1,91 @@
+﻿
+@page "/Rents/List"
+@using Blazored.Toast.Services;
+@using HouseRent.Shared.DTO;
+@using Microsoft.AspNetCore.Authorization;
+@attribute [Authorize]
+@inject HttpClient http
+@inject IToastService toastService
+@inject NavigationManager NavigationManager
+<div class="row justify-content-center" style="background-color: #FFF5EE; padding: 20px; border: 1px solid #E0E0E0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+    <div class="col-12">
+        <h3 class="text-center fw-bold text-secondary">Rents Lists</h3>
+        <div class="d-flex justify-content-end mb-2">
+            <a class="btn btn-outline-primary shadow-ld btn-sm" href="/Rents/Create"><i class="bi bi-plus"></i></a>
+        </div>
+        @if (rents is null)
+        {
+            <div class="d-flex justify-content-center mt-5">
+                <img src="/Uploads/loading.gif" />
+            </div>
+        }
+        else
+        {
+            <table class="table table-bordered table-hover table-striped table-responsive-sm shadow" >
+                <thead class="table-light">
+                    <tr>
+                        <th>Rent Date</th>
+                        <th>Tenant</th>
+                        <th>Date Line</th>
+                        <th>Status</th>
+                        <th>Items</th>
+                        <th>Rent Value</th>
+                        <th>Actions</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var o in rents)
+                    {
+                        <tr>
+                            <td>@o.RentDate.ToString("yyyy-MM-dd")</td>
+                            <td>@o.TenantName</td>
+                            <td>@o.BookedDate?.ToString("yyyy-MM-dd")</td>
+                            <td>@o.Status</td>
+                            <td>@o.ItemCount</td>
+                            <td>@o.RentValue.ToString("0.00")</td>
+
+                            <td>
+
+                                <a class="btn btn-outline-primary shadow btn-sm" href="/Rents/Edit/@o.RentID"><i class="bi bi-pencil"></i></a>
+                                <button @onclick="@( ()=>Delete(o.RentID))" class="btn btn-outline-danger shadow-sm btn-sm"><i class="bi bi-trash"></i></button>
+                            </td>
+                            <td>
+                                <a class="btn btn-link" href="/Rents/Details/@o.RentID"><i class="bi bi-info-circle"></i></a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@code {
+    private RentViewDTO[]? rents;
+    private RentDTO[]? or;
+    protected override async Task OnInitializedAsync()
+    {
+        rents = await http.GetFromJsonAsync<RentViewDTO[]>("api/Rents/DTO");
+    }
+
+    private async Task Delete(int id)
+    {
+        var response = await http.DeleteAsync($"api/Rents/{id}");
+        if (response.IsSuccessStatusCode)
+        {
+            toastService.ShowWarning("Data deleted successfully");
+            or = await http.GetFromJsonAsync<RentDTO[]>("api/Rents");
+            //await OnInitializedAsync();
+            // Rents = Rents.Where(c => c.OrderID != id).ToList();
+            rents = await http.GetFromJsonAsync<RentViewDTO[]>("api/Rents/DTO");
+        }
+        else
+        {
+            toastService.ShowError("Failed to delete data.");
+        }
+        //StateHasChanged();
+        //NavigationManager.NavigateTo("/Rents/List", true);
+    }
+}
+

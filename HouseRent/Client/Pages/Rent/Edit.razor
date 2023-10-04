@@ -1,0 +1,162 @@
+﻿@page "/Rents/Edit/{id:int}"
+@using Blazored.Toast.Services;
+@using HouseRent.Shared.DTO;
+@using HouseRent.Shared.Models;
+@inject HttpClient http
+@inject IToastService toastService
+@inject NavigationManager NavigationManager
+<div class="row bg-light shadow justify-content-center">
+    <div class="col-10">
+        <EditForm Model="@rent" OnValidSubmit="SaveRent">
+            <h3 class="text-center fw-bold text-secondary mb-4">Update Rent Details</h3>
+            <DataAnnotationsValidator />
+            <div class="form-group row mb-1">
+                <label class="col-form-label fw-bold text-secondary col-4 text-end" for="@rent.TenantID">Tenant</label>
+                <div class="col-6">
+                    <InputSelect @bind-Value="rent.TenantID" class="form-select">
+                        <option value="">Select</option>
+                        @if (Tenants is not null)
+                        {
+                            foreach (var c in Tenants)
+                            {
+                                <option value="@c.TenantID">@c.TenantName</option>
+                            }
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(()=>rent.TenantID)" class="text-danger" />
+                </div>
+            </div>
+            <div class="form-group row mb-1">
+                <label class="col-form-label col-4 fw-bold text-secondary text-end" for="@rent.RentDate">rent date</label>
+                <div class="col-6">
+                    <InputDate Type="InputDateType.Date" @bind-Value="@rent.RentDate" class="form-control" />
+                    <ValidationMessage For="@(()=>rent.RentDate)" class="text-danger" />
+                </div>
+            </div>
+            <div class="form-group row mb-1">
+                <label class="col-form-label col-4 fw-bold text-secondary text-end" for="@rent.BookedDate">Delivery date</label>
+                <div class="col-6">
+                    <InputDate Type="InputDateType.Date" @bind-Value="@rent.BookedDate" class="form-control" />
+                    <ValidationMessage For="@(()=>rent.BookedDate)" class="text-danger" />
+                </div>
+            </div>
+            <div class="form-group row mb-1">
+                <label class="col-form-label col-4 fw-bold text-secondary text-end" for="@rent.Status">Status</label>
+                <div class="col-6">
+                    <InputSelect @bind-Value="@rent.Status" class="form-select">
+                        @if (statusNames is not null)
+                        {
+                            foreach (var s in statusNames)
+                            {
+                                <option value="@s">@s</option>
+                            }
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(()=>rent.BookedDate)" class="text-danger" />
+                </div>
+            </div>
+            <div class="form-group row mb-4">
+
+                <div class="col-11">
+                    <div class="d-flex justify-content-between">
+                        <h4 class="fw-bold text-secondary">Items</h4> <button @onclick="@AddItem" type="button" class="btn btn-outline-primary shadow btn-sm m-1"><i class="bi bi-plus"></i></button>
+                    </div>
+                </div>
+            </div>
+            @foreach (var oi in rent.RentItems)
+            {
+                int i = 1;
+                <div class="form-group row mb-1 ">
+                    <label class="col-form-label col-2 fw-bold text-secondary text-end" for="@rent.TenantID">Flat</label>
+                    <div class="col-3">
+                        <InputSelect @bind-Value="oi.FlatID" class="form-select">
+                            <option value="">Select</option>
+                            @if (Flats is not null)
+                            {
+                                foreach (var p in Flats)
+                                {
+                                    <option value="@p.FlatID">@p.FlatName</option>
+                                }
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(()=>oi.FlatID)" class="text-danger" />
+                    </div>
+                    <label class="col-form-label col-2 fw-bold text-secondary text-end" for="@oi.Quantity">Quantity</label>
+                    <div class="col-3">
+                        <InputNumber @bind-Value="oi.Quantity" class="form-control" />
+
+                        <ValidationMessage For="@(()=>oi.Quantity)" class="text-danger" />
+                    </div>
+                    <div class="col-1">
+                        <button @onclick="@(()=>RemoveItem(i++))" type="button" class="btn btn-outline-danger  shadow btn-sm">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+
+            }
+            <br />
+            <div class="form-group row mb-3 mt-2">
+
+                <div class="col-12">
+                    <div class="d-flex justify-content-between">
+                        <a href="/Rents/List" class="btn shadow btn-link">Back to list</a>
+                        <button type="submit" class="btn btn-outline-warning shadow">Update the rent</button>
+                    </div>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int id { get; set; }
+    private RentEditDTO? rent = new();
+    private Tenant[]? Tenants;
+    private Flat[]? Flats;
+    private string[]? statusNames;
+    protected override async Task OnInitializedAsync()
+    {
+
+        statusNames = Enum.GetNames<Status>();
+        Tenants = await http.GetFromJsonAsync<Tenant[]>("api/Tenants");
+        Flats = await http.GetFromJsonAsync<Flat[]>("api/Flats");
+        rent = await http.GetFromJsonAsync<RentEditDTO>($"api/Rents/{id}");
+        if (rent is not null)
+        {
+            RentItem[]? data = await http.GetFromJsonAsync<RentItem[]>($"api/Rents/OI/{id}");
+            if (data is not null)
+            {
+                foreach (var ri in data)
+                {
+                    rent.RentItems.Add(new RentItemEditDTO { RentID = ri.RentID, FlatID = ri.FlatID, Quantity = ri.Quantity, Price = 0 });
+                }
+            }
+        }
+    }
+    private void AddItem()
+    {
+        rent?.RentItems.Add(new RentItemEditDTO());
+    }
+    private void RemoveItem(int index)
+    {
+        if (rent is not null && rent.RentItems.Count > 1)
+            ((List<RentItemEditDTO>)rent.RentItems).RemoveAt(index);
+    }
+    private async Task SaveRent()
+    {
+        var response = await http.PutAsJsonAsync($"api/Rents/DTO/{id}", rent);
+        if (response.IsSuccessStatusCode)
+        {
+            toastService.ShowSuccess("Data saved successfully");
+            NavigationManager.NavigateTo("/Rents/List");
+
+        }
+        else
+        {
+            toastService.ShowError("Failed to data.");
+        }
+        await Task.CompletedTask;
+    }
+}

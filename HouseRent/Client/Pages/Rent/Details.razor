@@ -1,0 +1,87 @@
+﻿@page "/Rents/Details/{id:int}"
+@using HouseRent.Shared.DTO;
+@inject HttpClient http
+@inject NavigationManager NavigationManager
+<div class="row justify-content-center" style="background-color: #FFF5EE; padding: 20px; border: 1px solid #E0E0E0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+    <div class="row">
+        <h3 class="text-center fw-bold text-info">Rent Details</h3>
+        @if (rent is null)
+        {
+            <div class="d-flex justify-content-center mt-5">
+                <img src="/Uploads/loading.gif" />
+            </div>
+        }
+        else
+        {
+            <div class="text-center">
+                <div class="row mb-1 ">
+                    <label class="col-6 text-end  fw-bold text-secondary">Rent Date</label>
+                    <div class="col-6 text-start  fw-bold text-secondary">
+                        @rent.RentDate.ToString("yyyy-MM-dd")
+                    </div>
+                </div>
+                <div class="row mb-1">
+                    <label class="col-6 text-end  fw-bold text-secondary">Tenant Name</label>
+                    <div class="col-6 text-start  fw-bold text-secondary">
+                        @rent.TenantName
+                    </div>
+                </div>
+                <div class="row mb-1">
+                    <label class="col-6 text-end  fw-bold text-secondary">Delivery date</label>
+                    <div class="col-6 text-start  fw-bold text-secondary">
+                        @rent.BookedDate?.ToString("yyyy-MM-dd")
+                    </div>
+                </div>
+                <div class="row mb-5">
+                    <label class="col-6 text-end  fw-bold text-secondary">Status</label>
+                    <div class="col-6 text-start  fw-bold text-secondary">
+                        @rent.Status
+                    </div>
+                </div>
+            </div>
+            <br />
+            <br />
+            @if (rentItems is not null)
+            {
+                <div><h4 class="text-center fw-bold text-secondary">Items</h4></div>
+                <table class="table table-bordered table-striped table-hover table-responsive-sm shadow-sm">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Flat</th>
+                            <th>Quantity</th>
+                            <th>Sub-total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var oi in rentItems)
+                        {
+                            <tr>
+                                <td>@oi.FlatName</td>
+                                <td>@oi.Quantity</td>
+                                <td>@((oi.Price * oi.Quantity).ToString("0.00"))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                <div class="col-12 mb-5">
+                    <a href="/Rents/List" class="btn btn-link shadow">Back to list</a>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int id { get; set; }
+    private RentViewDTO? rent;
+    private RentItemViewDTO[]? rentItems;
+    protected override async Task OnInitializedAsync()
+    {
+        rent = await http.GetFromJsonAsync<RentViewDTO>($"api/Rents/DTO/{id}");
+        if (rent is not null)
+        {
+            rentItems = await http.GetFromJsonAsync<RentItemViewDTO[]>($"api/Rents/Items/{id}");
+        }
+    }
+}

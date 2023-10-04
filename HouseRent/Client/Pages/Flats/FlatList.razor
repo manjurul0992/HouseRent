@@ -1,0 +1,72 @@
+﻿@page "/Flats/List"
+@attribute [Authorize]
+@using Blazored.Toast.Services;
+@using HouseRent.Shared.Models;
+@using Microsoft.AspNetCore.Authorization;
+@inject HttpClient http
+@inject IToastService toastService
+<div class="row justify-content-center" style="background-color: #FFF5EE; padding: 20px; border: 1px solid #E0E0E0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+    <div class="col-10 ">
+        <h3 class="text-center fw-bold text-secondary">Flat List</h3>
+        <div class="d-flex justify-content-end mb-2">
+            <a class="btn btn-outline-primary shadow-lg btn-sm" href="/Flats/Create"><i class="bi bi-plus"></i></a>
+        </div>
+        @if (flats is null)
+        {
+            <div class="d-flex justify-content-center mt-5">
+                <img src="/Uploads/loading.gif" />
+            </div>
+        }
+        else
+        {
+            <table class="table table-bordered table-striped table-responsive-sm table-hover shadow">
+                <thead class="table-light">
+                    <tr>
+                        <th></th>
+                        <th>Name</th>
+                        <th>Price</th>
+                        <th>Available?</th>
+                        <th>...</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in flats)
+                    {
+                        <tr>
+                            <td width="40" height="40"><img src="/Uploads/@p.Picture" class="rounded  border-secondary " style="width:50px;height:34px; border:none;border-image-slice:fill;margin-left:4px;" /></td>
+                            <td>@p.FlatName</td>
+                            <td>@p.Price.ToString("0.00")</td>
+                            <td>@(p.IsAvailable ? "Yes" : "No")</td>
+                            <td class="d-flex justify-content-center ">
+                                <a class="btn btn-outline-success shadow-sm btn-sm " href="/Flats/edit/@p.FlatID"><i class="bi bi-pencil"></i></a>&nbsp;
+                                <a @onclick="@( ()=>Delete(p.FlatID))" class="btn btn-outline-danger shadow-sm btn-sm "><i class="bi bi-trash"></i></a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@code {
+    private Flat[]? flats;
+    protected override async Task OnInitializedAsync()
+    {
+        flats = await http.GetFromJsonAsync <Flat[]>("api/Flats");
+    }
+    private async Task Delete(int id)
+    {
+        var response = await http.DeleteAsync($"api/Flats/{id}");
+        if (response.IsSuccessStatusCode)
+        {
+            toastService.ShowWarning("Data deleted successfully");
+            flats = await http.GetFromJsonAsync<Flat[]>("api/Flats");
+
+        }
+        else
+        {
+            toastService.ShowError("Failed to delete data.");
+        }
+    }
+}

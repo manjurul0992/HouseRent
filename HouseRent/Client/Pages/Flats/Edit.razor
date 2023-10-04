@@ -1,0 +1,137 @@
+﻿@page "/Flats/Edit/{id:int}"
+@using System.Net.Http.Headers;
+@using Blazored.Toast.Services;
+@using HouseRent.Shared.DTO;
+@inject HttpClient http
+@inject IToastService toastService
+@inject NavigationManager NavigationManager
+<div class="row bg-light shadow">
+    @if (flat is null)
+    {
+        <div class="d-flex justify-content-center mt-5">
+            <img src="/Uploads/loading.gif" />
+        </div>
+    }
+    else
+    {
+        <br />
+        <h3 class="text-center mb-4 fw-bold text-secondary mt-4">Update flat Details</h3>
+        <div class="col-9">
+            <EditForm Model="@flat" OnValidSubmit="SaveFlat">
+
+                <DataAnnotationsValidator />
+                <div class="form-group row mb-1 mt-3">
+                    <label class="col-form-label col-2 text-end" for="@flat.FlatName">Flat Name</label>
+                    <div class="col-4">
+                        <InputText @bind-Value="flat.FlatName" class="form-control" />
+                        <ValidationMessage For="@(()=>flat.FlatName)" class="text-danger" />
+                    </div>
+                </div>
+                <div class="form-group row mb-1">
+                    <label class="col-form-label col-2 text-end" for="@flat.Price">flat price</label>
+                    <div class="col-4">
+                        <InputNumber @bind-Value="flat.Price" class="form-control" />
+                        <ValidationMessage For="@(()=>flat.Price)" class="text-danger" />
+                    </div>
+                </div>
+                <div class="form-group row mb-1">
+                    <label class="col-form-label col-2 text-end" for="@flat.FlatName">Picture</label>
+                    <div class="col-4">
+                        <InputFile OnChange="@OnInputFileChange" class="form-control" />
+
+
+                    </div>
+                </div>
+                <div class="form-group row mb-1">
+                    <label class="col-form-label col-2 text-end" for="@flat.IsAvailable">Available</label>
+                    <div class="col-4">
+                        <InputCheckbox @bind-Value="flat.IsAvailable" class="mt-2" />
+                    </div>
+                </div>
+                <div class="form-group row mb-1">
+
+                    <div class="col-6 offset-2 d-flex ">
+
+                        <button type="submit" class="btn btn-outline-warning">Update</button>
+
+
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+        <div class="col-3 mt-2">
+
+            @if (flat is not null)
+            {
+                <img src="/Uploads/@flat.Picture" class="img-thumbnail" style="width:150px" />
+            }
+        </div>
+    }
+    <div class="d-flex justify-content-end mb-4">
+        <a href="/Flats/List" class="btn shadow btn-link">Back to list</a>
+    </div>
+    <br />
+</div>
+
+@code {
+    [Parameter]
+    public int id { get; set; }
+    private FlatEditDTO? flat = new();
+    IBrowserFile? selectedFile;
+    protected override async Task OnInitializedAsync()
+    {
+        flat = await http.GetFromJsonAsync<FlatEditDTO>($"api/Flats/{id}");
+    }
+    private void OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+
+
+        //this.StateHasChanged();
+    }
+    public async Task SaveFlat()
+    {
+        if (selectedFile is not null)
+        {
+
+            if (flat is not null)
+            {
+                var saveImage = await UploadItAsysnc();
+                flat.Picture = saveImage.StoredFileName;
+
+            }
+        }
+        var response = await http.PutAsJsonAsync($"api/Flats/{id}", flat);
+        if (response.IsSuccessStatusCode)
+        {
+            toastService.ShowSuccess("Data updated successfully");
+            NavigationManager.NavigateTo("/Flats/List");
+        }
+        else
+        {
+            toastService.ShowError("Failed to update data.");
+        }
+    }
+    private async Task<ImageUploadResponse> UploadItAsysnc()
+    {
+        using (var ms = new MemoryStream())
+        {
+            if (selectedFile is not null)
+            {
+                var content = new MultipartFormDataContent();
+                var fileContent = new StreamContent(selectedFile.OpenReadStream(long.MaxValue));
+
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(selectedFile.ContentType);
+                content.Add(content: fileContent, name: "\"file\"", fileName: selectedFile.Name);
+                var response = await http.PostAsync("api/Flats/Upload", content);
+                var r = await response.Content.ReadFromJsonAsync<ImageUploadResponse>();
+                return r == null ? new ImageUploadResponse() : r;
+            }
+            else
+            {
+                return new ImageUploadResponse();
+            }
+
+        }
+    }
+}

@@ -1,0 +1,125 @@
+﻿@page "/Flats/Create"
+@using System.Net.Http.Headers;
+@using Blazored.Toast.Services;
+@using HouseRent.Shared.DTO;
+@inject HttpClient http
+@inject IToastService toastService
+@inject NavigationManager NavigationManager
+<div class="bg-success p-2 text-dark bg-opacity-25">
+    <div class="col-12">
+
+        <br />
+        <div class="col-12 d-flex justify-content-end mb-4 ">
+            <a href="/Flats/List" class="btn shadow btn-link">Back to list</a>
+        </div>
+        <br />
+        <h3 class="text-center fw-bold text-secondary mb-4">Create Flat</h3>
+        <div class="justify-content-center col-10">
+            <EditForm Model="@flat" OnValidSubmit="SaveFlat">
+
+                <DataAnnotationsValidator />
+                <div class="form-group row mb-1">
+                    <label class="col-form-label col-5 text-end" for="@flat.FlatName">Flat Name</label>
+                    <div class="col-6">
+                        <InputText @bind-Value="flat.FlatName" class="form-control" />
+                        <ValidationMessage For="@(()=>flat.FlatName)" class="text-danger" />
+                    </div>
+                </div>
+
+                
+                
+
+                <div class="form-group row mb-1">
+                    <label class="col-form-label col-5 text-end" for="@flat.Price">Flat price</label>
+                    <div class="col-6">
+                        <InputNumber @bind-Value="flat.Price" class="form-control" />
+                        <ValidationMessage For="@(()=>flat.Price)" class="text-danger" />
+                    </div>
+                </div>
+                <div class="form-group row mb-1">
+                    <label class="col-form-label col-5 text-end" for="@flat.FlatName">Picture</label>
+                    <div class="col-6">
+                        <InputFile OnChange="@OnInputFileChange" class="form-control" />
+                        <input type="hidden" @bind="flat.Picture" />
+                        <ValidationMessage For="@(()=>flat.Picture)" class="text-danger" />
+                    </div>
+                </div>
+                <div class="form-group row mb-1">
+                    <label class="col-form-label col-5 text-end" for="@flat.IsAvailable">Available</label>
+                    <div class="col-6 text-start">
+                        <InputCheckbox @bind-Value="flat.IsAvailable" class="m-2" />
+
+                    </div>
+                </div>
+                <div class="form-group row mb-5 mt-4">
+
+                    <div class="col-7 offset-5">
+                        <button type="submit" class="btn btn-outline-primary  shadow">Save</button>
+
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+
+    <br />
+    <br />
+</div>
+@code {
+    private FlatDTO flat = new();
+    IBrowserFile? selectedFile;
+    private void OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        flat.Picture = e.File.Name;
+
+        //this.StateHasChanged();
+    }
+    private async Task SaveFlat()
+    {
+        if (flat is not null)
+        {
+
+
+            var saveImage = await UploadItAsysnc();
+            flat.Picture = saveImage.StoredFileName;
+            var response = await http.PostAsJsonAsync("api/Flats", flat);
+            if (response.IsSuccessStatusCode)
+            {
+                toastService.ShowSuccess("Data saved successfully");
+                flat = new();
+                NavigationManager.NavigateTo("/Flats/List");
+            }
+            else
+            {
+                toastService.ShowError("Failed to data.");
+            }
+
+
+        }
+    }
+    private async Task<ImageUploadResponse> UploadItAsysnc()
+    {
+        using (var ms = new MemoryStream())
+        {
+
+            if (selectedFile is not null)
+            {
+                var content = new MultipartFormDataContent();
+                var fileContent = new StreamContent(selectedFile.OpenReadStream(long.MaxValue));
+
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(selectedFile.ContentType);
+                content.Add(content: fileContent, name: "\"file\"", fileName: selectedFile.Name);
+                var response = await http.PostAsync("api/Flats/Upload", content);
+                var r = await response.Content.ReadFromJsonAsync<ImageUploadResponse>();
+                return r == null ? new ImageUploadResponse() : r;
+            }
+            else
+            {
+                return new ImageUploadResponse();
+            }
+
+
+        }
+    }
+}

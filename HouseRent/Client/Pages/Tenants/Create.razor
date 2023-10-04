@@ -1,0 +1,62 @@
+﻿@page "/Tenants/Create"
+@using Blazored.Toast.Services;
+@using HouseRent.Shared.Models;
+@inject HttpClient http
+@inject IToastService toastService
+@inject NavigationManager NavigationManager
+
+<div class="bg-success p-4 text-dark bg-opacity-25 shadow-lg rounded">
+    <div class="col-12">
+        <h3 class="text-center fw-bold text-secondary mb-4 mt-4">Create Tenant</h3>
+        <EditForm Model="@tenant" OnValidSubmit="SaveTenant">
+
+            <DataAnnotationsValidator />
+            <div class="form-group row mb-2 mt-4">
+
+                <label class="col-form-label fw-bold text-secondary col-4 text-end" for="@tenant.TenantName">Tenant name</label>
+                <div class="col-6">
+                    <InputText @bind-Value="tenant.TenantName" class="form-control" />
+                    <ValidationMessage For="@(()=>tenant.TenantName)" class="text-danger" />
+                </div>
+            </div>
+            <div class="form-group row mb-1">
+                <label class="col-form-label fw-bold text-secondary col-4 text-end" for="@tenant.Address">Address</label>
+                <div class="col-6">
+                    <InputTextArea @bind-Value="tenant.Address" class="form-control" />
+                    <ValidationMessage For="@(()=>tenant.Address)" class="text-danger" />
+                </div>
+            </div>
+            <div class="form-group row mb-1">
+                <label class="col-form-label fw-bold text-secondary col-4 text-end" for="@tenant.Email">Email</label>
+                <div class="col-6">
+                    <InputText @bind-Value="tenant.Email" class="form-control" />
+                    <ValidationMessage For="@(()=>tenant.Email)" class="text-danger" />
+                </div>
+            </div>
+            <div class="form-group row mb-4">
+
+                <div class="col-9 offset-1 mt-3 d-flex justify-content-between">
+
+                    <a href="/Tenants/List" class="btn btn-link shadow">Back to list</a>
+                    <button type="submit" class="btn btn-outline-primary shadow btn-sm">Save</button>
+
+                </div>
+            </div>
+        </EditForm>
+    </div>
+
+</div>
+
+@code {
+    private Tenant tenant = new();
+    private async Task SaveTenant()
+    {
+        var respose = await http.PostAsJsonAsync("api/Tenants", tenant);
+        if (respose.IsSuccessStatusCode)
+        {
+            toastService.ShowSuccess("Data saved successsfully");
+            tenant = new();
+            NavigationManager.NavigateTo("/Tenants/List");
+        }
+    }
+}
